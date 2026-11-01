@@ -1,13 +1,7 @@
-// Uninstall report: the Windows uninstaller runs the launcher with --report-uninstall, and it sends only the install id to api.millida.net/v2/launcher/uninstall.
-// Nothing is sent when usage statistics are turned off. The id is the same random UUID the telemetry already uses (see TELEMETRY.md).
+// Cubed accepts the legacy uninstaller argument but never sends a report.
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 pub const REPORT_UNINSTALL_ARG: &str = "--report-uninstall";
-const UNINSTALL_URL: &str = "https://api.millida.net/v2/launcher/uninstall";
-/// The uninstaller waits for this process, and a person clicking "Uninstall"
-/// must never sit behind a dead network.
-const REPORT_BUDGET: Duration = Duration::from_secs(5);
 const INSTALL_ID_MAX: usize = 64;
 
 /// The install id lives in the webview's localStorage, which the uninstaller
@@ -49,19 +43,7 @@ fn stored_install_id(file: &Path) -> Option<String> {
 
 /// Best effort by design: the uninstall goes on whether the report lands or not,
 /// and there is no window left to show a failure in.
-pub fn report_uninstall() {
-    if !super::game_telemetry_enabled() {
-        return;
-    }
-    let Some(install_id) = stored_install_id(&install_id_file()) else { return };
-    let body = serde_json::json!({ "installId": install_id });
-    tauri::async_runtime::block_on(async move {
-        let sent = super::client().post(UNINSTALL_URL).timeout(REPORT_BUDGET).json(&body).send().await;
-        if let Err(e) = sent {
-            eprintln!("uninstall report not sent: {}", super::net_err(&e));
-        }
-    });
-}
+pub fn report_uninstall() {}
 
 #[cfg(test)]
 mod tests {

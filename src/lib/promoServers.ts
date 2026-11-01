@@ -98,7 +98,7 @@ function schedule(): void {
 
 /** Adds the servers the API lists to every build, now and whenever the list or the builds change. */
 export function watchPromoServers(): () => void {
-  if (!hasTauri()) return () => {}
+  if (!hasTauri() || !partnerServersEnabled()) return () => {}
   schedule()
   const offPromo = usePromo.subscribe((s, prev) => s.promo.serverList !== prev.promo.serverList && schedule())
   const offProfiles = useProfiles.subscribe((s, prev) => s.profiles !== prev.profiles && schedule())
@@ -107,3 +107,6 @@ export function watchPromoServers(): () => void {
     offProfiles()
   }
 }
+
+// Cubed never inserts partner advertisements into a player’s servers.dat.
+function partnerServersEnabled(): boolean { return false }

@@ -543,7 +543,7 @@ fn disabled_file() -> PathBuf {
 }
 
 pub fn millida_mod_enabled() -> bool {
-    enabled_at(&disabled_file())
+    false
 }
 
 pub fn millida_mod_wanted(profile: &str) -> bool {
@@ -557,15 +557,11 @@ fn telemetry_off_file() -> PathBuf {
 }
 
 pub fn game_telemetry_enabled() -> bool {
-    enabled_at(&telemetry_off_file())
+    false
 }
 
-pub fn set_game_telemetry_enabled(on: bool) -> Result<(), String> {
-    if on {
-        turn_on_at(&telemetry_off_file())
-    } else {
-        turn_off_at(&telemetry_off_file())
-    }
+pub fn set_game_telemetry_enabled(_on: bool) -> Result<(), String> {
+    turn_off_at(&telemetry_off_file())
 }
 
 /// Отсутствие файла - это «включено»: у тех, кто не трогал настройку, файла нет,

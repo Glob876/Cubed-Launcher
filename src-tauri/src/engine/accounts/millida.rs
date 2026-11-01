@@ -70,6 +70,14 @@ pub fn webview_path_allowed(path: &str) -> bool {
         return false;
     }
     let clean = low.trim_end_matches('/');
+    // Cubed: no webview caller may reintroduce statistics through generic IPC.
+    if clean == "/errors" || clean.starts_with("/errors/")
+        || ["/launcher/telemetry", "/launcher/heartbeat", "/launcher/uninstall"]
+            .iter().any(|route| clean == *route || clean.starts_with(&format!("{route}/")))
+    {
+        return false;
+    }
+
     if clean == "/auth" || clean.starts_with("/auth/") {
         // Webview начинает вход по коду сам; всё остальное в /auth — дело ядра.
         return clean == "/auth/launcher/init";
