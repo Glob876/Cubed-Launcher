@@ -8,7 +8,7 @@ import { hasLicenseSession, msTokenExpired, useAccounts } from '../state/account
 import type { Account } from '../state/accounts'
 import { SECRETS_CHANGED_EVENT } from '../lib/secure'
 import { refreshMsAccounts, startMsLogin } from '../state/msLogin'
-import { openModal, setScreen, showToast } from '../state/ui'
+import { showToast } from '../state/ui'
 import { uiConfirm } from '../state/confirm'
 import { forgetMillidaIfGone, logoutToLogin } from '../lib/session'
 import { useT } from '../i18n'
@@ -143,24 +143,14 @@ export function AccountMenu({
           <div className="acc-menu-empty">{t('Пока нет аккаунтов')}</div>
         )}
         <div className="acc-menu-sep"></div>
-        <button
-          className="acc-add-btn acc-plus-btn"
-          data-track="account_plus"
-          onClick={() => {
-            onClose()
-            setScreen('plus')
-          }}
-        >
-          <Icon id="i-crown" />
-          Millida Plus
-        </button>
+
         <button
           id="accAddBtn"
           className="acc-add-btn"
           data-track="account_add"
           onClick={() => {
             onClose()
-            openModal('accModal')
+            window.dispatchEvent(new Event('cubed-open-account'))
           }}
         >
           <Icon id="i-plus" />

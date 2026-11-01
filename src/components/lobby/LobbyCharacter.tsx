@@ -1,12 +1,13 @@
+import { microsoftLook } from '../../lib/cubedSkin'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadMine3d } from '../../lib/mine3d'
 import { headLook } from '../../lib/headLook'
 import type { Mine3dModule } from '../../lib/mine3d'
 import type { SkinAnimation, SkinViewEngine } from '../../vendor/mine3d'
 import { textureSource } from '../../lib/textureSource'
-import { detectSlimFromUrl, loadImg } from '../../lib/skinArms'
+import { loadImg } from '../../lib/skinArms'
 import { useViewPrefs } from '../../state/viewPrefs'
-import { LOOK_EVENT, catalogKnowing, gameProfile, loadCosmeticCatalog, loadWardrobe, loadWornCosmetics, lookVersion } from '../../lib/gameProfile'
+import { LOOK_EVENT, catalogKnowing, lookVersion } from '../../lib/gameProfile'
 import type { CosmeticItem } from '../../lib/gameProfile'
 import { useHasMillida } from '../../state/auth'
 import { getAccount, useAccounts } from '../../state/accounts'
@@ -25,7 +26,6 @@ import { FlatFigure } from '../character/FlatFigure'
 import { gpuLite, noteContextCreated, noteContextLost, useGpuLite } from '../../lib/gpuLite'
 import { webviewFailure } from '../../lib/webviewHealth'
 import { Vector3 } from 'three'
-import { setScreen } from '../../state/ui'
 import { onRenderGate, renderLive } from '../../lib/renderGate'
 import {
   IDLE_SHOW,
@@ -63,31 +63,6 @@ interface Look {
   dressKey?: string
 }
 
-/**
- * Эмоции, которые персонаж сам изредка играет в лобби: только те, что читаются
- * спереди стоя. Полёты, сидячие и лёжа, сальто, «червяк» и бег сюда не идут —
- * фигура уходит из кадра или ложится (приказ владельца 23.09.2026).
- */
-const LOBBY_EMOTES = [
-  '67',
-  'EXCLAIMED_POINT',
-  'ANIME_LOVE',
-  'WAVE_R',
-  'DAB',
-  'CLAP',
-  'YES',
-  'KISS',
-  'FLOSS',
-  'WHIP_NAE',
-  'SHUFFLE_DANCE',
-  'VIBE_DANCE',
-  'HYPERPOP_DANCE',
-  'TAUNT_DANCE',
-  'PIGLIN_VICTORY',
-  'EVIL_LAUGH',
-  'BOW',
-  'WHEW',
-]
 
 /** Встроенные движения, если эмоции не доехали. */
 const BUILTIN_SHOW = IDLE_SHOW
@@ -146,21 +121,8 @@ type LookSkin = Pick<Look, 'skin' | 'slim' | 'cape'>
  */
 const WARDROBE_WAIT_MS = 3500
 
-async function nickLookSkin(nick: string): Promise<LookSkin> {
-  const skin = nickSkinUrl(nick)
-  // A skin found by nick carries no arm type, so it is read from the texture
-  // exactly as the wardrobe does; otherwise an Alex skin got Steve arms here.
-  return { skin, slim: await detectSlimFromUrl(skin).catch(() => false), cape: null }
-}
-
-async function loadLookSkin(nick: string, signedIn: boolean): Promise<LookSkin> {
-  if (!signedIn) return nickLookSkin(nick)
-  const wardrobe = await loadWardrobe().catch(() => null)
-  const fresh = (u: string) => (lookVersion && !/^(data|blob):/i.test(u) ? u + (u.includes('?') ? '&' : '?') + 'v=' + lookVersion : u)
-  const cape = wardrobe?.active.capeUrl ? fresh(wardrobe.active.capeUrl) : null
-  if (wardrobe?.active.skinUrl) return { skin: fresh(wardrobe.active.skinUrl), slim: wardrobe.active.model === 'slim', cape }
-  return { ...(await nickLookSkin(nick)), cape }
-}
+async function nickLookSkin(_nick: string): Promise<LookSkin> { return microsoftLook() }
+async function loadLookSkin(_nick: string, _signedIn: boolean): Promise<LookSkin> { return microsoftLook() }
 
 function loadLook(nick: string, signedIn: boolean): { first: Promise<Look>; full: Promise<Look> } {
   return lookStages<LookSkin, Pick<Look, 'items' | 'show'>>(
@@ -174,39 +136,7 @@ function loadLook(nick: string, signedIn: boolean): { first: Promise<Look>; full
   )
 }
 
-async function loadLookOutfit(signedIn: boolean): Promise<Pick<Look, 'items' | 'show'>> {
-  const look: Pick<Look, 'items' | 'show'> = { items: [], show: [] }
-  const catalogAsked = loadCosmeticCatalog().catch(() => ({ items: [] as CosmeticItem[] }))
-  const pickShow = (items: CosmeticItem[]) =>
-    LOBBY_EMOTES.map((id) => items.find((c) => c.id === id)).filter((c): c is CosmeticItem => Boolean(c && c.model))
-  if (!signedIn) {
-    look.show = pickShow((await catalogAsked).items || [])
-    return look
-  }
-  const [catalog, worn] = await Promise.all([
-    catalogAsked,
-    gameProfile()
-      .then((p) => (p.uuid ? loadWornCosmetics(p.uuid) : []))
-      .catch(() => []),
-  ])
-  look.show = pickShow(catalog.items || [])
-  // Каталог в памяти живёт час: надетую вещь, которой в нём ещё нет, досматриваем в свежем.
-  const known = worn.length ? await catalogKnowing(worn.map((w) => w.id)).catch(() => catalog) : catalog
-  for (const w of worn) {
-    // Служба отдаёт базовый код вещи; если ответ пришёл раньше каталога, fromServer
-    // не развернул его в «КОД~расцветка» — ищем карточку по baseId и имени расцветки.
-    const all = known.items || []
-    const item =
-      all.find((c) => c.id === w.id) ??
-      all.find((c) => c.baseId === w.id && c.variants?.[0]?.name === w.variant) ??
-      all.find((c) => c.baseId === w.id)
-    if (!item || !item.model) continue
-    const list = item.variants ?? []
-    const variant = list.find((v) => v.name === w.variant) ?? (list.length ? defaultVariant(list) : null)
-    look.items.push({ item, texture: variant?.texture ?? item.texture, glow: variant?.emissive ?? item.emissive })
-  }
-  return look
-}
+async function loadLookOutfit(_signedIn: boolean): Promise<Pick<Look, 'items' | 'show'>> { return {items:[],show:[]} }
 
 /**
  * Персонаж на главной — тот, которого собирают в «Персонаже»: скин, плащ и
@@ -884,7 +814,7 @@ export function LobbyCharacter({
   if (lite || (glFail > 0 && !glTry)) {
     if (shop) queueMicrotask(() => onDressedRef.current?.(0))
     return (
-      <div className={'lobby-char lobby-char-flat' + (shop ? ' shop-stage' : '') + (flatShown ? ' shown' : '')} onClick={() => (shop ? undefined : setScreen('skins'))}>
+      <div className={'lobby-char lobby-char-flat' + (shop ? ' shop-stage' : '') + (flatShown ? ' shown' : '')} onClick={() => (shop ? undefined : window.dispatchEvent(new Event('cubed-open-account')))}>
         {shop ? null : (
           <span className="lobby-flat-tag">
             <Nametag nick={nick} at={{ x: 0, y: 0 }} />
@@ -945,7 +875,7 @@ export function LobbyCharacter({
         const box = lobbyHitBox(ndc, rect.width, rect.height)
         const x = e.clientX - rect.left
         const y = e.clientY - rect.top
-        if (!shop && x >= box.left && x <= box.left + box.width && y >= box.top && y <= box.top + box.height) setScreen('skins')
+        if (!shop && x >= box.left && x <= box.left + box.width && y >= box.top && y <= box.top + box.height) window.dispatchEvent(new Event('cubed-open-account'))
       }}
       onPointerCancel={() => {
         drag.current = null

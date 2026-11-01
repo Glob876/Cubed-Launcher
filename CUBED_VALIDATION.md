@@ -7,7 +7,7 @@
   produced a profile for Minecraft 26.3 / Fabric 0.20.1 and downloaded its mods (about 43 MB
   including the test data). Real user launcher data was not used.
 - Browser smoke test with mocked native IPC passed: Microsoft account entry and missing-ID
-  error, home and build picker, persisted wallpaper/accent selection, local library,
+  error, upstream lobby with character and original play card, original settings and both layout modes, persisted wallpaper/accent selection, local library,
   Modrinth results and settings. It checks that removed navigation items are absent
   and that startup does not request Millida domains, including delayed startup work.
 - Telemetry, crash opt-out and modpack-version selection tests passed in separate Bun
@@ -21,3 +21,5 @@ The original project still has unused integration code in shared modules; the ma
 shell and screen registry exclude commercial/social screens, and their entry commands
 were removed or disabled. Removed Rust commands currently produce dead-code warnings.
 The local WebKit runtime under work/ is a development convenience and is not shipped in Git.
+
+Visual restoration: compared with screenshots/lobby-ru.png; the custom Cubed shell, home component and stylesheet were removed. Existing upstream lobby, character, navigation styles, settings controls and catalog layout are reused without commercial/social widgets.

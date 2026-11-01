@@ -251,12 +251,13 @@ export interface StillWp {
   src: string
 }
 
-export const STILLS: StillWp[] = [
-  { id: 'bg5', get name() { return t('Золотой час') }, thumb: '/bg/bg5.jpg', src: '/lobby/world.webp' },
-  { id: 'bg2', get name() { return t('Уютная пещера') }, thumb: '/bg/bg2.jpg', src: '/bg/bg2-wide.webp' },
-  { id: 'bg3', get name() { return t('Солнечный город') }, thumb: '/bg/bg3.jpg', src: '/bg/bg3-wide.webp' },
-  { id: 'bg4', get name() { return t('У камина') }, thumb: '/bg/bg4.jpg', src: '/bg/bg4-wide.webp' },
-]
+function sceneStill(id: string): string {
+  if (typeof document === 'undefined') return ''
+  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H
+  const c=canvas.getContext('2d');if(c) SCENES[id].draw(c,10,0,0)
+  return canvas.toDataURL()
+}
+export const STILLS: StillWp[] = Object.keys(SCENES).map(id => ({id,get name(){return SCENES[id].name},get thumb(){return sceneStill(id)},get src(){return sceneStill(id)}}))
 
 export const stillOf = (id: string) => STILLS.find((s) => s.id === id) ?? null
 

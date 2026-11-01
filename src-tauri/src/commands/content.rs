@@ -494,16 +494,20 @@ pub async fn ftb_install(app: tauri::AppHandle, id: u64) -> Result<engine::Profi
 }
 
 #[tauri::command]
-pub async fn cubed_modrinth_search(query: String, kind: String, offset: u32) -> Result<serde_json::Value, String> {
+pub async fn cubed_modrinth_search(query: String, kind: String, offset: u32, game_version: Option<String>, loader: Option<String>, sort: Option<String>) -> Result<serde_json::Value, String> {
     if !matches!(kind.as_str(), "modpack" | "mod" | "resourcepack" | "shader" | "datapack") {
         return Err("Неизвестный тип контента".into());
     }
-    let facets = serde_json::json!([[format!("project_type:{kind}")]]).to_string();
+    let mut facets = vec![vec![format!("project_type:{kind}")]];
+    if let Some(v) = game_version.filter(|v| !v.is_empty()) { facets.push(vec![format!("versions:{v}")]); }
+    if let Some(v) = loader.filter(|v| !v.is_empty() && v != "vanilla") { facets.push(vec![format!("categories:{v}")]); }
+    let facets = serde_json::to_string(&facets).map_err(|e| e.to_string())?;
+    let sort = sort.filter(|s| matches!(s.as_str(), "downloads" | "newest" | "updated" | "relevance")).unwrap_or_else(|| "downloads".into());
     let response = reqwest::Client::new()
         .get("https://api.modrinth.com/v2/search")
         .header(reqwest::header::USER_AGENT, "Glob876/Cubed-Launcher (github.com/Glob876/Cubed-Launcher)")
         .timeout(std::time::Duration::from_secs(30))
-        .query(&[("query", query), ("facets", facets), ("offset", offset.to_string()), ("limit", "20".into())])
+        .query(&[("query", query), ("facets", facets), ("offset", offset.to_string()), ("limit", "20".into()), ("index", sort)])
         .send().await.map_err(|e| e.to_string())?
         .error_for_status().map_err(|e| e.to_string())?;
     response.json().await.map_err(|e| e.to_string())

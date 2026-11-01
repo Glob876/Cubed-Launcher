@@ -1,3 +1,6 @@
+import { setTrayClose } from '../lib/window'
+import { setAutostart } from '../lib/autostart'
+import { MicrosoftAccount, MicrosoftSetup } from '../components/CubedMicrosoft'
 import { useEffect, useState } from 'react'
 import { useLayout, type Layout } from '../state/layout'
 import type { ReactNode } from 'react'
@@ -9,14 +12,10 @@ import {
   cacheSize,
   clearCache,
   defaultJava,
-  discordClear,
   downloadJavaRuntime,
   javaMajors,
   listJavaRuntimes,
   openGameFolder,
-  openUrl,
-  overlaySetCardMs,
-  overlaySetEnabled,
   overlayState,
   convertFileSrc,
   pickGameDir,
@@ -30,67 +29,43 @@ import { refreshProfiles, useProfiles } from '../state/profiles'
 import { openBuildSettings } from '../state/instance'
 import { useLobby } from '../state/lobbyMode'
 import type { JavaInfo, JavaRuntime, OverlayState } from '../ipc/commands'
-import { CARD_TTL_CHOICES, CARD_TTL_MS } from '../lib/overlayCards'
+import { CARD_TTL_MS } from '../lib/overlayCards'
 import { apiErrorText } from '../lib/apiError'
 import { Icon } from '../components/Icon'
 import { Block, Group, Query, Row, Segs, Toggle } from '../components/SetKit'
-import { CloudSync } from '../components/CloudSync'
 import { SharedStore } from '../components/SharedStore'
 import { BackupsFolderRow } from '../components/BackupsFolderRow'
 import { AmbienceRows } from '../components/lobby/AmbienceRows'
-import { openMcNews } from '../components/McNews'
 import { A11yRows } from '../components/A11yRows'
 import { uiChoice, uiConfirm } from '../state/confirm'
 import { ColorPicker } from '../components/ColorPicker'
-import { AppIconPicker } from '../components/AppIconPicker'
-import { AudioSettings } from '../components/AudioSettings'
 import { RewindClips } from '../components/RewindClips'
 import { MusicPlayer, RadioCredits } from '../components/radio'
-import { betaChannel, checkForUpdate, pendingUpdate } from '../lib/updater'
-import { useUpdate } from '../state/update'
-import { discordPresence } from '../lib/launch'
 import { radioOn, useMusic } from '../state/music'
 import { fetchSounds, playSound, setSoundMode, soundMode, soundVolume } from '../lib/sound'
 import type { SoundMode } from '../lib/sound'
-import { notifyLevel, setNotifyLevel } from '../state/notifyPrefs'
-import { setDesktopToasts } from '../lib/desktopToast'
-import { setStreakRemind, streakRemindOn } from '../lib/streakReminder'
-import { autostartOn, setAutostart } from '../lib/autostart'
-import type { NotifyKind, NotifyLevel } from '../state/notifyPrefs'
+import { autostartOn } from '../lib/autostart'
 import { Slider } from '../components/Slider'
 import { Select } from '../components/Select'
-import { type MarketFeature, marketOffers, t, useMarket, useT } from '../i18n'
+import { t, useT } from '../i18n'
 import { LangPicker } from '../components/LangPicker'
 import { writePref } from '../lib/prefs'
 import { setMusicAutostart } from '../state/music'
-import { track, trackFailure } from '../lib/telemetry'
-import { getAccount, getMillidaAccount, useAccounts } from '../state/accounts'
-import { balanceText, openTopup, useMoney } from '../lib/useMoney'
+import { trackFailure } from '../lib/telemetry'
+import { useAccounts } from '../state/accounts'
+import { useMoney } from '../lib/useMoney'
 // Наличие аккаунта берём из стора, а не вызовом hasMillidaAccount(): вызов не
 // реактивен, и вкладка «Приватность», открытая до готовности хранилища сессий
 // (или до входа в аккаунт), навсегда застревала на «Нужен аккаунт Millida».
-import { useHasMillida } from '../state/auth'
-import { setSkinSource, skinSource } from '../lib/gameProfile'
-import { millidaModEnabled, setMillidaModEnabled } from '../ipc/commands'
-import { startTour } from '../state/tour'
-import { buildDiagnostics } from '../lib/diag'
-import { copyText } from '../lib/clipboard'
-import { loadPrivacy, usePrivacy } from '../lib/privacy'
-import type { PrivacyFlag, PrivacySettings } from '../lib/privacy'
-import { DUO_INVITE_OPTIONS, type DuoInvites } from '../lib/duoEmotes'
 import {
   hasTray,
   launchWindowMode,
   restoreOnGameExit,
   setLaunchWindowMode,
   setRestoreOnGameExit,
-  setTrayClose,
   trayCloseEnabled,
 } from '../lib/window'
 import type { LaunchWindowMode } from '../lib/window'
-import type { SkinSource } from '../lib/gameProfile'
-import { logoutToLogin } from '../lib/session'
-import { PremiumSwatches, ThemeRow } from '../components/premium/ThemeRow'
 import { leavePremiumLook, markThemeChoice } from '../lib/premiumTheme'
 import { accentFromHex, computeAccent, paintAccent, saveAccent, withColorFade } from '../lib/accent'
 import type { Accent } from '../lib/accent'
@@ -197,32 +172,11 @@ function initialSec(): SecId {
 
 /// Тумблеры приватности профиля. Те же поля правятся на millida.net —
 /// подписи держим близкими к сайту, чтобы человек узнавал настройку.
-const privacyRows = (): { key: PrivacyFlag; title: string; feature?: MarketFeature }[] => [
-  { key: 'showActivity', title: t('Игровая активность') },
-  { key: 'showServers', title: t('Серверы') },
-  { key: 'showPlaytime', title: t('Часы в игре') },
-  { key: 'showFriends', title: t('Список друзей') },
-  { key: 'showAchievements', title: t('Достижения') },
-  { key: 'showMarket', title: t('Маркет'), feature: 'market' },
-]
 
-const notifyRows = (): [NotifyKind, string][] => [
-  ['msg', t('Личные сообщения')],
-  ['room', t('Сообщения в группах')],
-  ['play', t('Друг зашёл в игру')],
-  ['online', t('Друг в сети')],
-  ['request', t('Заявки в друзья')],
-]
 
-const notifyLevels = (): [NotifyLevel, string][] => [
-  ['sound', t('Со звуком')],
-  ['silent', t('Без звука')],
-  ['off', t('Выкл')],
-]
 
 export function Settings({ on }: { on: boolean }) {
   const t = useT()
-  const market = useMarket()
   const [sec, setSecState] = useState<SecId>(initialSec)
   const [query, setQuery] = useState('')
   const memProfiles = useProfiles((s) => s.profiles)
@@ -232,13 +186,13 @@ export function Settings({ on }: { on: boolean }) {
   const [accent, setAccent] = useState(initialAccent)
   const [customHex, setCustomHex] = useState(initialCustomHex)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [overlay, setOverlay] = useState<OverlayState>({
+  const [, setOverlay] = useState<OverlayState>({
     enabled: false,
     toasts: true,
     hotkey: 'Alt+M',
     cardMs: CARD_TTL_MS,
   })
-  const [modOn, setModOn] = useState(true)
+
   const showSnapshots = useMcVersionList((s) => s.show)
   const [cacheMb, setCacheMb] = useState<number | null>(null)
   const [clearing, setClearing] = useState(false)
@@ -248,33 +202,26 @@ export function Settings({ on }: { on: boolean }) {
   const [backAfterGame, setBackAfterGame] = useState(restoreOnGameExit)
   const [tray, setTray] = useState(hasTray)
   const [autostart, setAutostartOn] = useState(false)
-  const [streakRemind, setStreakRemindOn] = useState(streakRemindOn)
-  const [discord, setDiscord] = useState(() => localStorage.getItem('m-discord') !== '0')
+
+
   const [musicAuto, setMusicAuto] = useState(() => localStorage.getItem('m-mus-auto') !== '0')
   const [soundMd, setSoundMd] = useState<SoundMode>(soundMode)
   const [soundVol, setSoundVol] = useState(soundVolume)
   const [soundBusy, setSoundBusy] = useState(false)
-  const [notifyLv, setNotifyLv] = useState<Record<NotifyKind, NotifyLevel>>(() => ({
-    msg: notifyLevel('msg'),
-    play: notifyLevel('play'),
-    online: notifyLevel('online'),
-    request: notifyLevel('request'),
-    room: notifyLevel('room'),
-  }))
+
   const [ver, setVer] = useState('')
-  const [diagBusy, setDiagBusy] = useState(false)
-  const [diagText, setDiagText] = useState('')
-  const [diagOpen, setDiagOpen] = useState(false)
+
+
+
   const [javas, setJavas] = useState<JavaRuntime[]>([])
   const [javaDef, setJavaDef] = useState<JavaInfo | null>(null)
   const [majors, setMajors] = useState<number[]>([8, 11, 17, 21])
   const [javaWant, setJavaWant] = useState(21)
   const [javaBusy, setJavaBusy] = useState(0)
-  const [upd, setUpd] = useState(pendingUpdate)
-  const [updBusy, setUpdBusy] = useState(false)
-  const [beta, setBeta] = useState(betaChannel)
-  const updStaged = useUpdate((s) => s.staged)
-  const [skins, setSkins] = useState<SkinSource>(skinSource)
+
+
+
+
   const charAnim = useViewPrefs((s) => s.charAnim)
   const bgAnim = useViewPrefs((s) => s.bgAnim)
   const tabMs = useViewPrefs((s) => s.tabMs)
@@ -282,8 +229,6 @@ export function Settings({ on }: { on: boolean }) {
   const layout = useLayout((s) => s.layout)
   useAccounts()
   useMoney()
-  const acc = getAccount()
-  const millidaAcc = getMillidaAccount()
 
   useEffect(() => {
     if (!on || !hasTauri()) return
@@ -296,7 +241,6 @@ export function Settings({ on }: { on: boolean }) {
         .then((b) => setCacheMb(Math.round(b / 1024 / 1024)))
         .catch(() => setCacheMb(0))
     void overlayState().then(setOverlay).catch(() => {})
-    void millidaModEnabled().then(setModOn).catch(() => {})
     void listJavaRuntimes().then(setJavas).catch(() => {})
     void defaultJava().then(setJavaDef).catch(() => {})
     void javaMajors()
@@ -319,35 +263,6 @@ export function Settings({ on }: { on: boolean }) {
     } catch {}
     const c = document.querySelector('.content')
     if (c) c.scrollTop = 0
-  }
-
-  // Приватность серверная и общая с сайтом: при открытии раздела перечитываем
-  // её, чтобы увидеть значение, выставленное на millida.net с другого места.
-  const privacy = usePrivacy()
-  const hasMillida = useHasMillida()
-  useEffect(() => {
-    if (!on || !hasMillida) return
-    void loadPrivacy(true)
-  }, [on, hasMillida])
-
-  const pickDuoInvites = (value: DuoInvites) => {
-    if (value === privacy.settings.duoInvites || privacy.saving === 'duoInvites') return
-    privacy
-      .patch({ duoInvites: value })
-      .then(() => showToast(t('Эмоции вдвоём: {who}', { who: t(DUO_INVITE_OPTIONS.find(([v]) => v === value)?.[1] ?? '').toLowerCase() })))
-      .catch(() => showToast(t('Не удалось сохранить настройку приглашений'), 'error'))
-  }
-
-  const togglePrivacy = (key: PrivacyFlag) => {
-    const next = !privacy.settings[key]
-    const row = privacyRows().find((r) => r.key === key)
-    privacy
-      .patch({ [key]: next } as Partial<PrivacySettings>)
-      .then(() => {
-        const name = row ? row.title : t('Настройка')
-        showToast(next ? t('{name} — видно всем', { name }) : t('{name} — скрыто', { name }))
-      })
-      .catch(() => showToast(t('Не удалось сохранить настройку приватности'), 'error'))
   }
 
   const onlyApp = (what: string) => {
@@ -439,7 +354,7 @@ export function Settings({ on }: { on: boolean }) {
                 }}
               ></button>
             ))}
-            <PremiumSwatches current={accent} onPick={setAccent} />
+
             <span className="s2-sw-wrap">
               <button
                 aria-label={t('Свой цвет')}
@@ -463,9 +378,7 @@ export function Settings({ on }: { on: boolean }) {
             </span>
           </div>
         </Group>
-        <Group title={t('Тема лаунчера')}>
-          <ThemeRow />
-        </Group>
+
       </Block>
 
       <Block keys="фон лобби обои картинка фото свой фон загрузить сцена галерея">
@@ -529,11 +442,7 @@ export function Settings({ on }: { on: boolean }) {
       </Block>
 
 
-      <Block keys="иконка приложения значок ярлык док панель задач искра пламя аметист легенда золото алмаз">
-        <Group title={t('Иконка приложения')}>
-          <AppIconPicker />
-        </Group>
-      </Block>
+
 
       <A11yRows />
 
@@ -670,134 +579,16 @@ export function Settings({ on }: { on: boolean }) {
         ) : null}
       </Group>
 
-      <Block keys="уведомления сообщения друг в сети заявки группы в игре со звуком без звука">
-        <Group title={t('Уведомления')}>
-          <div className="s2-matrix" role="table">
-            <div className="s2-mx-head" role="row">
-              <span></span>
-              {notifyLevels().map(([v, label]) => (
-                <span key={v} role="columnheader" className="s2-mx-col">
-                  {label}
-                </span>
-              ))}
-            </div>
-            {notifyRows().map(([kind, label]) => (
-              <div className="s2-mx-row" role="row" key={kind}>
-                <span className="s2-mx-lab">{label}</span>
-                {notifyLevels().map(([v, seg]) => (
-                  <span key={v} className="s2-mx-cell">
-                    <button
-                      role="radio"
-                      aria-checked={notifyLv[kind] === v}
-                      aria-label={label + ': ' + seg}
-                      data-nosound
-                      className={'s2-dot' + (notifyLv[kind] === v ? ' on' : '') + (v === 'off' ? ' off' : '')}
-                      onClick={() => {
-                        setNotifyLv((prev) => ({ ...prev, [kind]: v }))
-                        setNotifyLevel(kind, v)
-                        if (v === 'sound') playSound('notify')
-                      }}
-                    ></button>
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </Group>
-      </Block>
-      <Group>
-        <Row title={t('Карточки поверх всех окон')} hint={t('Даже когда лаунчер свёрнут')} keys="уведомления рабочий стол">
-          <Toggle
-            label={t('Карточки поверх всех окон')}
-            on={overlay.toasts}
-            onChange={() => {
-              const next = !overlay.toasts
-              setOverlay({ ...overlay, toasts: next })
-              setDesktopToasts(next).catch((err) => {
-                console.error('[settings] desktop toasts', err)
-                setOverlay({ ...overlay, toasts: !next })
-                showToast(t('Не получилось — попробуй ещё раз'), 'error', false)
-              })
-            }}
-          />
-        </Row>
-        <Row title={t('Напоминать о серии')} hint={t('Вечером, если сундук не забран')} keys="серия сундук бонус напоминание уведомления">
-          <Toggle
-            label={t('Напоминать о серии')}
-            on={streakRemind}
-            onChange={() => {
-              const next = !streakRemind
-              setStreakRemindOn(next)
-              setStreakRemind(next)
-            }}
-          />
-        </Row>
-        <Row title={t('Сколько висит карточка')} keys="время уведомления секунды">
-          <Segs<number>
-            value={overlay.cardMs}
-            options={CARD_TTL_CHOICES.map((ms) => [ms, t('{n} с', { n: ms / 1000 })] as [number, string])}
-            onPick={(ms) => {
-              const prev = overlay.cardMs
-              setOverlay({ ...overlay, cardMs: ms })
-              overlaySetCardMs(ms).catch((err) => {
-                console.error('[settings] card ttl', err)
-                setOverlay({ ...overlay, cardMs: prev })
-                showToast(t('Не сохранилось'), 'error', false)
-              })
-            }}
-          />
-        </Row>
-      </Group>
 
-      <Block keys="микрофон наушники динамики устройства звонок шумоподавление громкость голоса">
-        <Group title={t('Микрофон и наушники')}>
-          <AudioSettings />
-        </Group>
-      </Block>
+
+
+
     </>
   )
 
   const game = (
     <>
-      <Group title={t('Скин')}>
-        <Row title={t('Откуда брать скин')} keys="скины плащи лицензия millida mojang">
-          <Segs<SkinSource>
-            value={skins}
-            options={[
-              ['millida', 'Millida'],
-              ['mojang', t('Лицензия')],
-            ]}
-            onPick={(v) => {
-              // Без лицензии Mojang скин брать неоткуда: в игре остаётся
-              // Стив, и по этому пути игрок уже приходил в поддержку.
-              if (v === 'mojang' && (!acc || acc.kind !== 'microsoft')) {
-                showToast(t('Скин из лицензии — только с аккаунтом Microsoft'), 'error')
-                return
-              }
-              setSkins(v)
-              setSkinSource(v)
-            }}
-          />
-        </Row>
-        <Row title={t('Мод Millida')} hint={t('Скины, плащи и эмоции в игре')} keys="мод эмоции плащи">
-          <Toggle
-            id="setMillidaMod"
-            label={t('Мод Millida')}
-            on={modOn}
-            onChange={() => {
-              const next = !modOn
-              setModOn(next)
-              setMillidaModEnabled(next)
-                .then(() => showToast(next ? t('Мод вернётся при следующем запуске сборки') : t('Мод убран из сборок')))
-                .catch((err) => {
-                  console.error('[settings] millida mod', err)
-                  setModOn(!next)
-                  showToast(t('Не получилось — попробуй ещё раз'), 'error')
-                })
-            }}
-          />
-        </Row>
-      </Group>
+
 
       <Group title={t('Во время игры')}>
         {/* Память — у каждой сборки своя: из настроек ведём в параметры выбранной сборки. */}
@@ -839,22 +630,7 @@ export function Settings({ on }: { on: boolean }) {
             }}
           />
         </Row>
-        <Row title={t('Чат друзей поверх игры')} hint={<kbd className="s2-kbd">{overlay.hotkey}</kbd>} keys="оверлей горячая клавиша">
-          <Toggle
-            id="setOverlay"
-            label={t('Чат друзей поверх игры')}
-            on={overlay.enabled}
-            onChange={() => {
-              const next = !overlay.enabled
-              setOverlay({ ...overlay, enabled: next })
-              overlaySetEnabled(next).catch((err) => {
-                console.error('[settings] overlay', err)
-                setOverlay({ ...overlay, enabled: !next })
-                showToast(t('Оверлей не включился'), 'error')
-              })
-            }}
-          />
-        </Row>
+
         <Row title={t('Снапшоты в списке версий')} keys="версии тестовые снапшоты">
           <Toggle
             id="setSnapshots"
@@ -1021,251 +797,13 @@ export function Settings({ on }: { on: boolean }) {
         ))}
       </Group>
 
-      <Block keys="облако облачный профиль синхронизация сборки выгрузить забрать">
-        <Group title={t('Облако')}>
-          <CloudSync />
-        </Group>
-      </Block>
+
     </>
   )
 
-  const account = (
-    <>
-      {millidaAcc ? (
-        <Group>
-          <Row title={t('Баланс')} hint={balanceText() ?? '—'} keys="кошелёк деньги пополнить рубли">
-            <button
-              className="btn sm secondary"
-              onClick={() => {
-                track('store_open', { where: 'wallet_topup' })
-                openTopup()
-              }}
-            >
-              {t('Пополнить')}
-            </button>
-          </Row>
-        </Group>
-      ) : null}
+  const account = <><Group title="Microsoft"><MicrosoftAccount /><MicrosoftSetup /></Group></>
 
-      <Group title={t('Видно в профиле на millida.net')}>
-        {!hasMillida ? (
-          <Row title={t('Нужен аккаунт Millida')} keys="приватность профиль видно">
-            <button className="btn sm primary" onClick={() => logoutToLogin()}>
-              <Icon id="i-login" /> {t('Войти')}
-            </button>
-          </Row>
-        ) : (
-          privacyRows().filter((r) => !r.feature || marketOffers(market, r.feature)).map((r) => (
-            <Row key={r.key} title={r.title} keys="приватность профиль видно скрыть">
-              {!privacy.loaded && privacy.loading ? (
-                <span className="skel" style={{ width: '42px', height: '24px' }}></span>
-              ) : (
-                <Toggle
-                  label={r.title}
-                  on={!!privacy.settings[r.key]}
-                  busy={privacy.saving === r.key}
-                  onChange={() => togglePrivacy(r.key)}
-                />
-              )}
-            </Row>
-          ))
-        )}
-        {privacy.error ? (
-          <Row title={t('Не загрузилось')} keys="приватность ошибка">
-            <span data-err={privacy.error} hidden></span>
-            <button className="btn sm secondary" onClick={() => void loadPrivacy(true)}>
-              <Icon id="i-restart" /> {t('Повторить')}
-            </button>
-          </Row>
-        ) : null}
-      </Group>
-
-      {hasMillida ? (
-        <Group title={t('Эмоции вдвоём')}>
-          <Row title={t('Кто может звать')} keys="эмоции вдвоём приглашение приватность друзья">
-            {!privacy.loaded && privacy.loading ? (
-              <span className="skel" style={{ width: '180px', height: '28px' }}></span>
-            ) : (
-              <Segs<DuoInvites> value={privacy.settings.duoInvites} options={DUO_INVITE_OPTIONS.map(([v, label]) => [v, t(label)] as [DuoInvites, string])} onPick={pickDuoInvites} />
-            )}
-          </Row>
-        </Group>
-      ) : null}
-
-      <Group title={t('Снаружи')}>
-        <Row title={t('Активность в Discord')} keys="дискорд статус rich presence приватность">
-          <Toggle
-            label={t('Активность в Discord')}
-            on={discord}
-            onChange={() => {
-              const next = !discord
-              setDiscord(next)
-              localStorage.setItem('m-discord', next ? '1' : '0')
-              if (next) void discordPresence('lobby')
-              else discordClear().catch(() => {})
-            }}
-          />
-        </Row>
-
-      </Group>
-    </>
-  )
-
-  const about = (
-    <>
-      <Block keys="версия обновление обновить проверить">
-        <div className="s2-hero">
-          <img src="/millida-logo.svg" alt="" width={48} height={48} />
-          <span className="s2-hero-txt">
-            <b>Millida Launcher</b>
-            <small>
-              {upd
-                ? updStaged
-                  ? t('Обновление {version} встанет при выходе', { version: upd.version })
-                  : t('Доступна {version}', { version: upd.version })
-                : ver
-                  ? t('Версия {version}', { version: ver })
-                  : t('Версия приложения')}
-            </small>
-          </span>
-          {upd ? (
-            <button
-              className="btn md primary"
-              disabled={updBusy}
-              onClick={() => {
-                setUpdBusy(true)
-                upd.install().catch((e) => {
-                  console.error('[settings] update', e)
-                  setUpdBusy(false)
-                  showToast(t('Не удалось обновиться'), 'error')
-                })
-              }}
-            >
-              <Icon id="i-restart" /> {updBusy ? t('Обновляем…') : t('Обновить')}
-            </button>
-          ) : (
-            <button
-              className="btn md secondary"
-              disabled={updBusy}
-              onClick={() => {
-                setUpdBusy(true)
-                void checkForUpdate(true)
-                  .then((u) => {
-                    setUpd(u)
-                    if (!u) showToast(t('Стоит последняя версия'))
-                  })
-                  .finally(() => setUpdBusy(false))
-              }}
-            >
-              {updBusy ? <span className="spin"></span> : <Icon id="i-restart" />} {t('Проверить')}
-            </button>
-          )}
-        </div>
-      </Block>
-
-      <Group>
-        {/* Не верят, что лаунчер собран из открытого кода: ссылка на релиз именно этой версии на GitHub, там файлы, отпечатки и свидетельство сборки. */}
-        <Row title={t('Собран на GitHub')} hint={ver ? 'v' + ver : undefined} keys="github исходный код открытый безопасность вирус проверить сборка">
-          <button
-            className="btn md secondary"
-            onClick={() => void openUrl('https://github.com/millida/launcher/releases' + (ver ? '/tag/v' + ver : '')).catch(() => {})}
-          >
-            {t('Открыть')}
-          </button>
-        </Row>
-        <Row title={t('Новости Minecraft')} keys="новости minecraft mojang обновления игры снапшоты">
-          <button className="btn md secondary" onClick={openMcNews}>
-            {t('Открыть')}
-          </button>
-        </Row>
-        <Row title={t('Тестовые версии')} hint={beta ? t('Раньше всех, бывают поломки') : undefined} keys="бета тестирование обновления раньше">
-          <Toggle
-            label={t('Тестовые версии')}
-            on={beta}
-            onChange={() => {
-              const next = !beta
-              setBeta(next)
-              writePref('m-beta', next ? '1' : '0')
-            }}
-          />
-        </Row>
-        <Row title={t('Запускать вместе с системой')} hint={t('Сразу в трей')} keys="автозапуск автозагрузка система windows трей включение">
-          <Toggle
-            label={t('Запускать вместе с системой')}
-            on={autostart}
-            onChange={() => {
-              const next = !autostart
-              setAutostartOn(next)
-              if (!hasTauri()) return
-              setAutostart(next)
-                .then(setAutostartOn)
-                .catch((err) => {
-                  console.error('[settings] autostart', err)
-                  setAutostartOn(!next)
-                  showToast(t('Система не дала — попробуй ещё раз'), 'error', false)
-                })
-            }}
-          />
-        </Row>
-        <Row title={t('Крестик прячет в трей')} hint={tray ? undefined : t('Трей недоступен в этой системе')} keys="трей закрывать окно свернуть">
-          <Toggle
-            label={t('Крестик прячет в трей')}
-            on={trayClose}
-            disabled={!tray}
-            onChange={() => {
-              if (!tray) {
-                showToast(t('Трей недоступен в этой системе'), 'error')
-                return
-              }
-              const next = !trayClose
-              setTrayCloseOn(next)
-              setTrayClose(next)
-            }}
-          />
-        </Row>
-        <Row title={t('Гайд по лаунчеру')} keys="обучение тур подсказки помощь">
-          <button className="btn sm secondary" onClick={startTour}>
-            {t('Показать')}
-          </button>
-        </Row>
-        <Row
-          title={t('Отчёт для поддержки')}
-          hint={diagText ? t('Скопировано — вставь в чат поддержки') : undefined}
-          keys="диагностика данные поддержка ошибка логи помощь"
-        >
-          <button
-            className="btn sm secondary"
-            disabled={diagBusy}
-            onClick={() => {
-              setDiagBusy(true)
-              buildDiagnostics()
-                .then(async (text) => {
-                  setDiagText(text)
-                  const ok = await copyText(text)
-                  showToast(ok ? t('Отчёт скопирован') : t('Не скопировалось — выдели текст ниже'), ok ? 'ok' : 'error')
-                  if (!ok) setDiagOpen(true)
-                })
-                .catch((e) => {
-                  console.error('[settings] diag', e)
-                  showToast(t('Отчёт не собрался'), 'error')
-                })
-                .finally(() => setDiagBusy(false))
-            }}
-          >
-            {diagBusy ? t('Собираем…') : t('Копировать')}
-          </button>
-          {diagText ? (
-            <button className="btn sm ghost" onClick={() => setDiagOpen((o) => !o)}>
-              {diagOpen ? t('Скрыть') : t('Текст')}
-            </button>
-          ) : null}
-        </Row>
-        {diagText && diagOpen ? (
-          <textarea className="s2-diag" readOnly value={diagText} onFocus={(e) => e.currentTarget.select()} />
-        ) : null}
-      </Group>
-    </>
-  )
+  const about = <Group><div className="s2-hero"><img src="/cubed-logo.svg" width={48} height={48} alt=""/><span className="s2-hero-txt"><b>Cubed Launcher</b><small>{ver}</small></span></div><Row title={t('Сворачивать в трей при закрытии')}><Toggle label={t('Сворачивать в трей при закрытии')} on={trayClose} onChange={() => {setTrayCloseOn(!trayClose);setTrayClose(!trayClose)}} /></Row><Row title={t('Запускать вместе с системой')}><Toggle label={t('Запускать вместе с системой')} on={autostart} onChange={() => {void setAutostart(!autostart).then(setAutostartOn).catch(e => showToast(String(e),'error'))}} /></Row><Row title="Лицензия" hint="GPL-3.0-only. На основе Millida Launcher." /></Group>
 
   const views: Record<SecId, ReactNode> = { look, sound, game, clips: <RewindClips />, files, account, about }
   const q = query.trim()

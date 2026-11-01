@@ -7,7 +7,7 @@ import { t } from '../i18n'
 const VIDS = ['taiga', 'sunset', 'cave', 'end']
 // Legacy canvas scenes were dropped; fall back if one is still stored.
 const SCENE_IDS = ['taiga', 'sunset', 'cave', 'end']
-const notScene = (id: string) => (id === 'custom' || SCENE_IDS.includes(id) ? id : 'taiga')
+const notScene = (id: string) => (id === 'custom' || id === 'pixels' || SCENE_IDS.includes(id) ? id : 'taiga')
 
 export interface CustomWp {
   kind: string

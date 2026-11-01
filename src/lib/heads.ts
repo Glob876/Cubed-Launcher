@@ -1,6 +1,7 @@
+import { microsoftLook } from './cubedSkin'
+import { getAccount } from '../state/accounts'
+import { loadImg } from './skinArms'
 import { useEffect, useState } from 'react'
-import { hasTauri } from '../ipc/tauri'
-import { headAvatar } from '../ipc/commands'
 
 const OFFLINE_NICK = 'MHF_Steve'
 
@@ -40,13 +41,19 @@ export function loadHead(nick?: string, kind?: string, px = headPx(32)): Promise
   if (failed && Date.now() - failed < RETRY_MS) return Promise.resolve(null)
   const running = inflight.get(key)
   if (running) return running
-  const task = (
-    hasTauri()
-      ? headAvatar(real, px)
-      : Promise.resolve(
-          'https://api.millida.net/v2/heads/avatar/' + encodeURIComponent(real) + '?size=' + px,
-        )
-  )
+  const account = getAccount()
+  const task = (account?.kind === 'microsoft' && norm(account.nick) === norm(real)
+    ? microsoftLook().then(async look => {
+        const image = await loadImg(look.skin)
+        const canvas = document.createElement('canvas'); canvas.width=px; canvas.height=px
+        const context=canvas.getContext('2d'); if(!context) return steveFace()
+        context.imageSmoothingEnabled=false
+        const scale=image.width/64
+        context.drawImage(image,8*scale,8*scale,8*scale,8*scale,0,0,px,px)
+        context.drawImage(image,40*scale,8*scale,8*scale,8*scale,0,0,px,px)
+        return canvas.toDataURL()
+      }).catch(() => steveFace())
+    : Promise.resolve(steveFace()))
     .then((url) => {
       mem.set(key, url)
       return url

@@ -1,5 +1,5 @@
+import { defaultCubedSkin } from './cubedSkin'
 // Shared scene of the 3D character (light, pose). Cosmetic models are cached in IndexedDB. In development the local folder /__dev/cosmetic-models is used.
-import { LAUNCHER_API } from './api'
 import { idbGet, idbSet } from './idbCache'
 import type { SkinAnimId } from '../vendor/mine3d'
 import { loadCosmeticModel } from './gameProfile'
@@ -136,9 +136,9 @@ function devModel(modelId: string): Promise<CosmeticModelFile | null> {
 }
 
 /** Скин по нику — тот же адрес, что у гардероба. */
-export const nickSkinUrl = (nick: string) => LAUNCHER_API + '/heads/skin/' + encodeURIComponent(nick)
+export const nickSkinUrl = (_nick: string) => defaultCubedSkin()
 /** Скин для публичных мест (топ): сервер подменяет непроверенный и недопустимый стандартным. */
-export const safeSkinUrl = (nick: string) => nickSkinUrl(nick) + '?safe=1'
+export const safeSkinUrl = (nick: string) => nickSkinUrl(nick)
 
 /**
  * Снести сцену и отдать её графический контекст сразу. mine3d.dispose() зовёт
