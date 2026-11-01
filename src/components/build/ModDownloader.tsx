@@ -197,7 +197,7 @@ export function ModDownloader({
   onDone: (demo?: ModFile[]) => void
 }) {
   const t = useT()
-  const [source, setSource] = useState<Source>('millida')
+  const [source, setSource] = useState<Source>('modrinth')
   const [q, setQ] = useState('')
   const [sort, setSort] = useState('relevance')
   const [fit, setFit] = useState<Fit>({ ver: true, loader: true })
@@ -439,7 +439,7 @@ export function ModDownloader({
 
         <div className="mdl-grid">
           <nav className="mdl-src" aria-label={t('Источник')}>
-            {(['millida', 'modrinth', 'curseforge'] as Source[]).map((s) => (
+            {(['modrinth'] as Source[]).map((s) => (
               <button key={s} type="button" className={'mdl-src-btn' + (source === s ? ' on' : '')} onClick={() => (setSource(s), setCur(null))}>
                 {s === 'millida' ? (
                   <img src="/millida-logo.svg" alt="" />

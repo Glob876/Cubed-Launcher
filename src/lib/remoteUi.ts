@@ -247,6 +247,7 @@ async function fetchText(url: string, init?: RequestInit): Promise<string> {
 }
 
 export async function downloadBundle(base = REMOTE_UI_BASE, known?: string): Promise<RemoteUiBundle | 'same' | 'off' | null> {
+  if (!cubedRemoteUiEnabled()) return null
   try {
     const manifest = JSON.parse(await fetchText(base + '/manifest.json', { cache: 'no-cache' })) as RemoteUiManifest & { off?: unknown }
     // Unsigned on purpose: whoever could forge it can only send players back to the built-in screens.
@@ -511,3 +512,5 @@ export async function markRemoteUiBad(version: string): Promise<void> {
     await idbSet({ current: prev ?? undefined, prev: undefined })
   }
 }
+
+function cubedRemoteUiEnabled(): boolean { return false }

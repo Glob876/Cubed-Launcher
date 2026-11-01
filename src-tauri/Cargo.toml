@@ -1,7 +1,7 @@
 [package]
-name = "millida-launcher"
+name = "cubed-launcher"
 version = "2.0.286"
-description = "Millida Launcher — безопасный лаунчер Minecraft"
+description = "Cubed Launcher — Minecraft launcher"
 authors = ["Millida"]
 edition = "2021"
 license = "GPL-3.0-only"
@@ -119,7 +119,7 @@ codegen-units = 1
 
 # The app crate is the critical path of a release build: with a single codegen
 # unit it compiles serially long after every dependency has finished.
-[profile.release.package.millida-launcher]
+[profile.release.package.cubed-launcher]
 codegen-units = 16
 
 # Local iteration profile. A separate named profile keeps its own target dir and
@@ -137,3 +137,6 @@ strip = "debuginfo"
 opt-level = 3
 codegen-units = 1
 incremental = false
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

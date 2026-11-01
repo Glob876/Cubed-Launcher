@@ -183,7 +183,6 @@ pub fn run() {
         .plugin(navguard::init())
         .plugin(tauri_plugin_deep_link::init())
         // Tauri auto-update plugin. The address and the public signing key are in tauri.conf.json. Our own signature check code is in engine/core/selfupdate.rs.
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         // Only one global hotkey is registered: the overlay hotkey (Alt+M by default), see overlay.rs.
@@ -229,7 +228,7 @@ pub fn run() {
             packdrop::watch(app.handle());
             display::watch(app.handle());
             uiwatch::watch(app.handle());
-            overlay::rebind_hotkey(app.handle());
+
             // Автотест — только в отладочной сборке (аудит 24.09.2026, S-04).
             #[cfg(debug_assertions)]
             if let Ok(mode) = std::env::var("MILLIDA_AUTOTEST") {
@@ -261,6 +260,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::accounts::cubed_microsoft_client_id,
+            commands::accounts::cubed_set_microsoft_client_id,
+            commands::content::cubed_modrinth_search,
             commands::content::core_version,
             commands::system::app_version,
             commands::system::remember_install_id,
@@ -277,8 +279,6 @@ pub fn run() {
             commands::launch::launch_game,
             commands::content::install_mod,
             commands::content::millida_mod_state,
-            commands::content::millida_mod_install,
-            commands::content::lift_millida_mod_quarantine,
             commands::content::millida_mod_enabled,
             commands::content::set_millida_mod_enabled,
             commands::content::set_game_telemetry,
@@ -294,19 +294,9 @@ pub fn run() {
             commands::profiles::install_modpack_version,
             commands::profiles::migrate_plan,
             commands::profiles::migrate_profile,
-            commands::profiles::install_catalog_pack,
-            commands::profiles::install_pack_candidate,
-            commands::profiles::update_catalog_pack,
-            commands::profiles::sync_catalog_pack,
             commands::profiles::protected_builds,
             commands::profiles::pack_auto_update,
             commands::profiles::set_pack_auto_update,
-            commands::profiles::pack_review_candidate,
-            commands::profiles::pack_review_queue,
-            commands::profiles::millida_packs,
-            commands::profiles::redeem_pack_key,
-            commands::profiles::pack_buy_url,
-            commands::profiles::cf_install_modpack,
             commands::system::open_url,
             commands::launch::cancel_launch,
             commands::launch::stop_game,
@@ -350,8 +340,6 @@ pub fn run() {
             commands::accounts::discord_reconnect,
             commands::accounts::discord_clear,
             commands::content::install_content,
-            commands::content::catalog_install,
-            commands::content::catalog_install_plan,
             commands::content::list_content,
             commands::content::dep_plan,
             commands::content::install_dep_items,
@@ -378,17 +366,6 @@ pub fn run() {
             commands::profiles::set_pack_visibility,
             commands::profiles::load_profile_settings,
             commands::profiles::set_profile_gpu,
-            commands::milli::milli_files_list,
-            commands::milli::milli_files_read,
-            commands::milli::milli_files_write,
-            commands::milli::milli_note_read,
-            commands::milli::milli_note_write,
-            commands::milli::milli_snapshot,
-            commands::milli::milli_snapshots,
-            commands::milli::milli_snapshot_restore,
-            commands::milli::milli_snapshot_delete,
-            commands::milli::milli_world_backups,
-            commands::milli::apply_milli_options,
             commands::profiles::gpu_switch_supported,
             commands::profiles::skin_mod_state,
             commands::profiles::set_skin_mod,
@@ -402,7 +379,6 @@ pub fn run() {
             commands::profiles::common_share_state,
             commands::profiles::set_common_share,
             commands::profiles::modpack_contents,
-            commands::profiles::catalog_pack_contents,
             commands::profiles::install_server_pack_file,
             commands::profiles::scan_imports,
             commands::profiles::pick_import_dir,
@@ -457,14 +433,7 @@ pub fn run() {
             commands::content::quarantine_packs,
             commands::content::ftb_search,
             commands::content::ftb_install,
-            commands::content::hosting_send_build,
             commands::content::install_version,
-            commands::content::cf_search,
-            commands::content::cf_install,
-            commands::content::cf_project,
-            commands::content::cf_files,
-            commands::content::cf_install_world,
-            commands::content::install_catalog_file,
             commands::content::list_world_installs,
             commands::content::active_installs,
             commands::content::cancel_install,
@@ -494,8 +463,6 @@ pub fn run() {
             commands::profiles::modpack_info,
             commands::profiles::list_screenshots,
             commands::accounts::millida_api,
-            commands::accounts::millida_upload_raw,
-            commands::accounts::millida_login_poll,
             commands::accounts::millida_logout,
             commands::accounts::session_status,
             commands::accounts::set_local_skin,
@@ -508,10 +475,6 @@ pub fn run() {
             commands::accounts::set_texture_slim,
             commands::accounts::rename_texture,
             commands::accounts::head_avatar,
-            commands::hosting::host_console_start,
-            commands::hosting::host_console_stop,
-            commands::hosting::host_download,
-            commands::hosting::host_upload,
             commands::launch::ping_server,
             commands::launch::repair_profile,
             commands::system::cache_size,
@@ -583,13 +546,6 @@ pub fn run() {
             commands::profiles::cloud_push,
             commands::profiles::cloud_pull,
             commands::profiles::cloud_forget,
-            commands::party_voice::party_voice_join,
-            commands::party_voice::party_voice_leave,
-            commands::party_voice::party_voice_transmit,
-            commands::party_voice::party_voice_deafen,
-            commands::party_voice::party_voice_members,
-            commands::party_voice::party_voice_bind,
-            commands::party_voice::party_voice_audio
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

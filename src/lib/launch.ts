@@ -93,7 +93,7 @@ export async function reconcileGameSession(): Promise<void> {
   } catch {}
 }
 
-export const discordEnabled = () => localStorage.getItem('m-discord') !== '0'
+export const discordEnabled = () => false
 
 /**
  * Показывается ли прямо сейчас активность Millida в Discord и на каком
@@ -137,6 +137,7 @@ let sentBeat: string | null = null
 let sendingBeat: string | null = null
 
 export function heartbeat(status?: string, server?: string | null) {
+  if (!cubedSocialEnabled()) return
   const beat = beatStatus(status, !!session, hasTauri())
   if (beat === 'playing' && session && (!status || status === 'lobby'))
     server = session.serverName || session.server
@@ -674,3 +675,5 @@ export function cancelPrelaunch() {
   launching = false
   showToast(t('Запуск отменён'))
 }
+
+function cubedSocialEnabled(): boolean { return false }

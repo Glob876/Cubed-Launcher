@@ -2,21 +2,14 @@
 import { api, hasMillidaAccount } from './api'
 import { MILLIDA_USER_KEY, useAccounts } from '../state/accounts'
 import { syncAuth } from '../state/auth'
-import { loadFriends } from '../state/friends'
-import { loadRooms } from '../state/rooms'
-import { refreshPlayStats } from '../state/playStats'
 import { refreshProfiles } from '../state/profiles'
 import { refreshGameNick } from '../state/gameNick'
 import { useUi } from '../state/ui'
 import { hasTauri } from '../ipc/tauri'
 import { millidaLogout } from '../ipc/commands'
 import { refreshSessionState } from './secure'
-import { playSound } from './sound'
-import { maybeStartOnboarding } from '../state/onboarding'
-import { syncAppIcon } from './appIcon'
-import { noteAppRun } from '../state/navHint'
-import { loadPrivacy, usePrivacy } from './privacy'
-import { loadMoney, refreshMoney, resetMoney } from './useMoney'
+import { usePrivacy } from './privacy'
+import { refreshMoney, resetMoney } from './useMoney'
 
 export interface MillidaProfile {
   nickname?: string
@@ -44,22 +37,10 @@ export async function loadMillidaProfile(): Promise<MillidaProfile | null> {
 }
 
 export function enterApp() {
-  playSound('login')
   useUi.getState().setLogged(true)
   syncAuth()
   void refreshProfiles()
-  void loadMillidaProfile()
-  void loadFriends()
-  void loadRooms()
-  void refreshPlayStats()
   void refreshGameNick()
-  void maybeStartOnboarding()
-  void syncAppIcon()
-  noteAppRun()
-  // Приватность живёт на сервере и общая с сайтом: тянем её сразу после входа,
-  // чтобы настройка пережила переустановку лаунчера и правку на millida.net.
-  void loadPrivacy(true)
-  void loadMoney()
 }
 
 function dropMillidaSession() {

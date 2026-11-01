@@ -244,6 +244,8 @@ pub async fn millida_api_in(
     market: Option<&'static str>,
     lang: Option<&'static str>,
 ) -> Result<Value, String> {
+    if !cubed_allows_millida_services() { return Err("Сервисы Millida удалены из Cubed Launcher".into()); }
+
     let resolved = api_url(&path)?;
     let url = resolved.as_str();
     let m = method.to_uppercase();
@@ -1277,3 +1279,5 @@ mod tests {
     }
 
 }
+
+fn cubed_allows_millida_services() -> bool { false }

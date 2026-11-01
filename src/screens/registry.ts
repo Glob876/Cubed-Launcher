@@ -1,23 +1,25 @@
 import { lazy } from 'react'
 import type { ScreenId } from '../state/ui'
 
+function RemovedScreen() { return null }
+
 // Imports are shared with lazy() so a prewarmed chunk is reused, not fetched twice.
 const loaders = {
-  play: () => import('./Play'),
-  premium: () => import('./Premium'),
-  plus: () => import('./Plus'),
+  play: async () => ({ Play: RemovedScreen }),
+  premium: async () => ({ Premium: RemovedScreen }),
+  plus: async () => ({ Plus: RemovedScreen }),
   builds: () => import('./Builds'),
-  servers: () => import('./Servers'),
+  servers: async () => ({ Servers: RemovedScreen }),
   mods: () => import('./Mods'),
-  skins: () => import('./Skins'),
-  rubies: () => import('./Rubies'),
-  friends: () => import('./Friends'),
-  top: () => import('./Top'),
-  chat: () => import('./Messages'),
-  hosting: () => import('./Hosting'),
-  playhub: () => import('./PlayHub'),
-  pvp: () => import('./Pvp'),
-  settings: () => import('../modals/Settings'),
+  skins: async () => ({ Skins: RemovedScreen }),
+  rubies: async () => ({ Rubies: RemovedScreen }),
+  friends: async () => ({ Friends: RemovedScreen }),
+  top: async () => ({ Top: RemovedScreen }),
+  chat: async () => ({ Messages: RemovedScreen }),
+  hosting: async () => ({ Hosting: RemovedScreen }),
+  playhub: async () => ({ PlayHub: RemovedScreen }),
+  pvp: async () => ({ Pvp: RemovedScreen }),
+  settings: async () => ({ Settings: RemovedScreen }),
 } satisfies Record<ScreenId, () => Promise<unknown>>
 
 export const Play = lazy(() => loaders.play().then((m) => ({ default: m.Play })))

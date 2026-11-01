@@ -204,17 +204,7 @@ async fn direct_available(source: Source) -> bool {
 /// прямой путь может отвалиться позже, а наш API — быть недоступен сам.
 // Order of addresses for one resource: direct first, then our mirror (or the other way round if direct does not answer).
 pub(crate) async fn routes(url: &str) -> Vec<String> {
-    let Some(source) = source_of(url) else {
-        return vec![url.to_string()];
-    };
-    let Some(proxied) = proxy_url(url) else {
-        return vec![url.to_string()];
-    };
-    if !demoted(source).load(Ordering::Relaxed) && direct_available(source).await {
-        vec![url.to_string(), proxied]
-    } else {
-        vec![proxied, url.to_string()]
-    }
+    vec![url.to_string()]
 }
 
 /// Прямой путь → наше зеркало → снова прямой. Для мелких, но обязательных

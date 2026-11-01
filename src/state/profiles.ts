@@ -1,8 +1,7 @@
 import { create } from 'zustand'
 import { hasTauri } from '../ipc/tauri'
-import { getProfileGroups, listContent, listProfiles, protectedBuilds } from '../ipc/commands'
+import { getProfileGroups, listProfiles, protectedBuilds } from '../ipc/commands'
 import type { Profile, ProfileGroups } from '../ipc/commands'
-import { setInventory } from '../lib/telemetry'
 import { DEMO_USER } from '../lib/demo'
 
 const DEMO_PROFILES: Profile[] = [
@@ -11,16 +10,7 @@ const DEMO_PROFILES: Profile[] = [
   { name: 'Minecraft 26.2', version: '26.2', fabric: true, loader: 'fabric', icon: null },
 ]
 
-async function reportInventory(profiles: Profile[]) {
-  if (!hasTauri()) return
-  let mods = 0
-  for (const p of profiles) {
-    try {
-      mods += (await listContent(p.name, 'mod')).length
-    } catch {}
-  }
-  setInventory(profiles.length, mods)
-}
+
 
 interface ProfilesState {
   profiles: Profile[]
@@ -56,10 +46,8 @@ export const useProfiles = create<ProfilesState>((set, get) => ({
     }
     if (!profiles.length) {
       set({ profiles: [], guarded: [], groups: {} })
-      void reportInventory([])
       return
     }
-    void reportInventory(profiles)
     let groups: ProfileGroups = {}
     let guarded: string[] = []
     if (hasTauri()) {

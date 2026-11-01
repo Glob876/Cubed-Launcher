@@ -11,5 +11,6 @@ off and automatic installation of the Millida companion mod is disabled.
 The partner-server watcher is disabled and does not insert advertisements into servers.dat.
 Previously added servers are not deleted from existing Minecraft installations.
 
-This is not yet a claim that every Millida integration has been removed. Account,
-social, catalog proxy and updater integration code still needs a separate audit.
+Millida account, social, store and hosting screens are excluded from the Cubed shell.
+Remote UI and translation updates are disabled. Catalog downloads no longer use Millida mirrors.
+Microsoft login requires Cubed's own application registration. See README.ru.md.

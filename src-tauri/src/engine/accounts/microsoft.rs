@@ -3,24 +3,24 @@
 use crate::engine::*;
 use serde_json::Value;
 
-/// Azure application client_id, baked in at compile time. Own builds should set
-/// MILLIDA_MS_CLIENT_ID to their own registration.
-// Public Azure application id, not a secret. Custom builds set their own through MILLIDA_MS_CLIENT_ID.
-const MS_CLIENT_ID_FALLBACK: &str = "499c8d36-be2a-4231-9ebd-ef291b7bb64c";
-
-pub(crate) fn ms_client_id() -> &'static str {
-    match option_env!("MILLIDA_MS_CLIENT_ID") {
-        Some(v) if !v.trim().is_empty() => v.trim(),
-        _ => MS_CLIENT_ID_FALLBACK,
+// Cubed uses its own public application registration, never Millida's ID.
+pub(crate) fn ms_client_id() -> Result<String, String> {
+    let id = crate::secrets::get("cubed-ms-client-id")
+        .or_else(|| std::env::var("CUBED_MS_CLIENT_ID").ok())
+        .or_else(|| option_env!("CUBED_MS_CLIENT_ID").map(str::to_string))
+        .unwrap_or_default();
+    if id.trim().is_empty() {
+        return Err("В настройках Cubed Launcher укажи Client ID приложения Microsoft".into());
     }
+    Ok(id.trim().to_string())
 }
 
 pub async fn ms_device_start() -> Result<Value, String> {
-    let client_id = ms_client_id();
+    let client_id = ms_client_id()?;
     let r = client()
         // Step one: ask Microsoft for a login code. client_id and the list of scopes are sent.
         .post("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode")
-        .form(&[("client_id", client_id), ("scope", "XboxLive.signin offline_access")])
+        .form(&[("client_id", client_id.as_str()), ("scope", "XboxLive.signin offline_access")])
         .send().await.map_err(|e| net_err(&e))?;
     let j: Value = r.json().await.map_err(|e| e.to_string())?;
     if let Some(err) = j["error"].as_str() {
@@ -34,12 +34,12 @@ pub async fn ms_device_start() -> Result<Value, String> {
 
 /// One polling step: {status:"pending"} or {status:"ok",nick,uuid,token}.
 pub async fn ms_device_poll(device_code: String) -> Result<Value, String> {
-    let client_id = ms_client_id();
+    let client_id = ms_client_id()?;
     let r = client()
         // Polls Microsoft: has the user signed in on the code page yet.
         .post("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
         .form(&[
-            ("client_id", client_id),
+            ("client_id", client_id.as_str()),
             ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
             ("device_code", &device_code),
         ])
@@ -158,11 +158,11 @@ pub async fn ms_validate(token: String) -> Result<Value, String> {
 /// and the rotated refresh_token when Microsoft issues one.
 // Refreshes the login: the refresh token goes to Microsoft, new tokens come back.
 pub async fn ms_refresh(refresh_token: String) -> Result<Value, String> {
-    let client_id = ms_client_id();
+    let client_id = ms_client_id()?;
     let r = client()
         .post("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
         .form(&[
-            ("client_id", client_id),
+            ("client_id", client_id.as_str()),
             ("grant_type", "refresh_token"),
             ("refresh_token", &refresh_token),
             ("scope", "XboxLive.signin offline_access"),

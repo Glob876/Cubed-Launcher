@@ -187,17 +187,8 @@ fn blocklist_cache() -> std::path::PathBuf {
 /// Hashes the launcher refuses to vouch for, published by the API. A failure to
 /// fetch is reported, never silently treated as "nothing is blocked".
 async fn blocklist() -> Result<HashMap<String, String>, String> {
-    let cache = blocklist_cache();
-    // List of blocked hashes from api.millida.net (cached for 6 hours).
-    let path = format!("{}{}", MILLIDA_API, BLOCKLIST_PATH);
-    let v = get_json_fresh(&path, &cache, BLOCKLIST_TTL).await?;
-    let mut out = HashMap::new();
-    for item in v["items"].as_array().into_iter().flatten() {
-        let Some(sha1) = item["sha1"].as_str() else { continue };
-        let why = item["reason"].as_str().unwrap_or("Файл в списке вредоносных").to_string();
-        out.insert(sha1.to_ascii_lowercase(), why);
-    }
-    Ok(out)
+    // Cubed keeps local scanning and Modrinth hash recognition without Millida requests.
+    Ok(HashMap::new())
 }
 
 struct Jar {

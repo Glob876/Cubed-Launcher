@@ -14,7 +14,7 @@ use super::jobs::{count_downloaded, Halt, CANCELLED};
 pub(crate) const PAUSED: &str = "Загрузка на паузе";
 
 // The only header we send to every server ourselves: launcher version and site.
-const UA: &str = concat!("MillidaLauncher/", env!("CARGO_PKG_VERSION"), " (+https://millida.net)");
+const UA: &str = concat!("CubedLauncher/", env!("CARGO_PKG_VERSION"), " (+https://github.com/Glob876/Cubed-Launcher)");
 const JSON_TIMEOUT: Duration = Duration::from_secs(30);
 const TRIES: u32 = 3;
 

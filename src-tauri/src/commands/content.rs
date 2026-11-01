@@ -492,3 +492,19 @@ pub async fn ftb_search(term: String) -> Result<Vec<engine::FtbPack>, String> {
 pub async fn ftb_install(app: tauri::AppHandle, id: u64) -> Result<engine::Profile, String> {
     engine::ftb_install(app, id).await
 }
+
+#[tauri::command]
+pub async fn cubed_modrinth_search(query: String, kind: String, offset: u32) -> Result<serde_json::Value, String> {
+    if !matches!(kind.as_str(), "modpack" | "mod" | "resourcepack" | "shader" | "datapack") {
+        return Err("Неизвестный тип контента".into());
+    }
+    let facets = serde_json::json!([[format!("project_type:{kind}")]]).to_string();
+    let response = reqwest::Client::new()
+        .get("https://api.modrinth.com/v2/search")
+        .header(reqwest::header::USER_AGENT, "Glob876/Cubed-Launcher (github.com/Glob876/Cubed-Launcher)")
+        .timeout(std::time::Duration::from_secs(30))
+        .query(&[("query", query), ("facets", facets), ("offset", offset.to_string()), ("limit", "20".into())])
+        .send().await.map_err(|e| e.to_string())?
+        .error_for_status().map_err(|e| e.to_string())?;
+    response.json().await.map_err(|e| e.to_string())
+}

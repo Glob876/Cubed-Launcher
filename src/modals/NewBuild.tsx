@@ -25,10 +25,6 @@ import { useLoaderBlocks, versionTag } from '../lib/loaderSupport'
 import type { LoaderId } from '../lib/loaderSupport'
 import '../styles/pixel/newbuild.css'
 import { showReward } from '../components/reward/RewardReveal'
-import { PxIcon } from '../components/PxIcon'
-import { aiPresetFor } from '../lib/aiBuilder'
-import { openMilli } from '../state/milli'
-import { openHubBuild } from '../components/playhub/hubTab'
 import { tx, useT } from '../i18n'
 
 /**
@@ -426,22 +422,7 @@ export function NewBuildModal() {
         </div>
 
         <div className="nb-foot">
-          <button
-            type="button"
-            className="btn md ghost"
-            id="nbAi"
-            data-track="ai_from_new_build"
-            disabled={busy}
-            onClick={() => {
-              close()
-              // Милли живёт в каталоге: ведём в «Ресурсы» и открываем её там.
-              openHubBuild()
-              openMilli({ preset: aiPresetFor(loader, ver), src: 'new_build' })
-            }}
-          >
-            <PxIcon name="sparkle" size={18} />
-            {t('Собрать с Милли')}
-          </button>
+
           <button className="btn md secondary" id="nbCancel" data-sound="close" onClick={close}>
             {t('Отмена')}
           </button>

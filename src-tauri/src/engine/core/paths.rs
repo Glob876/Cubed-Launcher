@@ -9,7 +9,7 @@ pub fn is_flatpak() -> bool {
 }
 
 pub fn data_dir() -> PathBuf {
-    dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("net.millida.launcher")
+    dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("io.github.glob876.cubed-launcher")
 }
 
 fn configured_root() -> Option<PathBuf> {

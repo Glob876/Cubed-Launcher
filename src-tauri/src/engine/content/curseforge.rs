@@ -17,6 +17,7 @@ pub(crate) fn cf_base() -> String {
 pub(crate) const CF_MIRROR: &str = "https://api.curse.tools";
 
 pub(crate) async fn cf_get(path: &str, q: &[(String, String)]) -> Result<Value, String> {
+    if !cubed_curseforge_enabled() { return Err("CurseForge отключён в Cubed Launcher".into()); }
     let key = cf_memo_key(path, q);
     if let Some(hit) = cf_memo(|m, now| m.answer(&key, now)) {
         return Ok(hit);
@@ -65,6 +66,7 @@ pub(crate) async fn cf_get(path: &str, q: &[(String, String)]) -> Result<Value, 
 /// The POST endpoints share the outage window only: their bodies differ per call
 /// and are not worth a key of their own.
 fn cf_post_urls(proxy_path: &str, mirror_path: &str) -> Vec<String> {
+    if !cubed_curseforge_enabled() { return Vec::new(); }
     let mirror = format!("{}/{}", CF_MIRROR, mirror_path);
     if cf_memo(|m, now| m.proxy_skipped("", now)) {
         vec![mirror]
@@ -1047,3 +1049,5 @@ mod tests {
         assert!(world_folder_name(&"я".repeat(200)).chars().count() <= 48);
     }
 }
+
+fn cubed_curseforge_enabled() -> bool { false }

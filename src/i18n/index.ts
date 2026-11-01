@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { create } from 'zustand'
 import { readPref, writePref } from '../lib/prefs'
 import { localizeCore, translate, type Table, type Vars } from './core'
-import { cachedFixes, fetchFixes } from './remote'
 import { pluralIn, relativeTimeIn, type RelativeOptions } from './relative'
 import {
   AVAILABLE_LOCALES,
@@ -66,19 +65,7 @@ function compose(code: Locale) {
 }
 
 /// Saved fixes apply with the table; fresh ones are asked for a few seconds after start, off the first paint.
-const FIXES_DELAY_MS = 4000
-
-function followFixes(code: Locale) {
-  const saved = cachedFixes(code)
-  if (saved) fixes[code] = saved
-  setTimeout(() => {
-    void fetchFixes(code).then((fresh) => {
-      if (fresh === null) return
-      fixes[code] = fresh
-      if (code === 'ru' || builtIn[code]) compose(code)
-    })
-  }, FIXES_DELAY_MS)
-}
+function followFixes(_code: Locale) {}
 
 interface I18nState {
   locale: Locale

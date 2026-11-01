@@ -23,7 +23,6 @@ import { TunePanel } from '../components/TunePanel'
 import { buildRamGb, setBuildRamMb } from '../lib/ramPref'
 import { IconEditor } from '../components/IconEditor'
 import { ShortcutRow } from '../components/ShortcutRow'
-import { CommonShareRows } from '../components/CommonShareRows'
 import { recallIconRecipe, rememberIconRecipe } from '../lib/iconArt'
 import { uiConfirm } from '../state/confirm'
 import { isOwnModFile, keepAfterOwnModConfirm, skinModOff } from '../lib/millidaModGuard'
@@ -119,7 +118,6 @@ import { catalogPackSlug } from '../lib/packUpdate'
 import { useInstance } from '../state/instance'
 import { closeModal, setScreen, showToast, useUi, openModal } from '../state/ui'
 import { repairPack } from '../lib/repair'
-import { openMilli } from '../state/milli'
 import { joinWithAuth, realLaunch, showLaunchError, startPrelaunch } from '../lib/launch'
 import { ALL_CATEGORIES, useMods } from '../state/mods'
 import { useModpackVersions } from '../state/modpack'
@@ -128,7 +126,7 @@ import { openProject } from '../state/project'
 import { stopRunningGame, useGame } from '../state/game'
 import { apiErrorText } from '../lib/apiError'
 import { trackFailure } from '../lib/telemetry'
-import { hasMillidaAccount, mirrorAsset } from '../lib/api'
+import { mirrorAsset } from '../lib/api'
 import { t, tx, useT } from '../i18n'
 import { LaunchHooksBlock } from '../components/build/LaunchHooksBlock'
 
@@ -2713,7 +2711,6 @@ export function InstancePage() {
                   ></span>
                 </div>
               ) : null}
-              {profile ? <CommonShareRows profile={profile} /> : null}
               <div className="bx-opts-cap">{t('Файлы')}</div>
               <div className="set-row">
                 <span className="lab">
@@ -2727,17 +2724,8 @@ export function InstancePage() {
                     setRepairBusy(true)
                     const name = profile!
                     repairPack(name)
-                      .then((r) => {
-                        // Причину вылета ядро не опознало — Милли смотрит лог и сборку целиком.
-                        if (!r?.unresolved || !hasMillidaAccount()) return
-                        const crash = r.unresolved
-                        void import('../lib/milliDoctor').then((d) => {
-                          d.startMilliDoctor()
-                          const { text, action } = d.crashAction({ profile: name, reason: crash.reason, tail: '', culprits: crash.culprits, actions: crash.actions, kind: crash.kind })
-                          openMilli({ src: 'repair' })
-                          void d.pushMilliAction(text, action, [t('Почему так?'), t('Осмотри сборку')])
-                        })
-                      })
+                      .then((r) => { if (r?.unresolved) showToast(r.unresolved.reason, 'error') })
+                      .catch((e) => showToast(String(e), 'error'))
                       .finally(() => setRepairBusy(false))
                   }}
                 >

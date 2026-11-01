@@ -227,3 +227,19 @@ pub fn rename_texture(kind: String, file: String, name: String) -> Result<Vec<en
 pub async fn head_avatar(nick: String, size: Option<u32>) -> Result<String, String> {
     engine::head_avatar(nick, size).await
 }
+
+#[tauri::command]
+pub fn cubed_microsoft_client_id() -> String {
+    crate::secrets::get("cubed-ms-client-id").unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn cubed_set_microsoft_client_id(client_id: String) -> Result<(), String> {
+    let id = client_id.trim();
+    if id.len() != 36 || !id.bytes().enumerate().all(|(i, b)| {
+        if [8, 13, 18, 23].contains(&i) { b == b'-' } else { b.is_ascii_hexdigit() }
+    }) {
+        return Err("Client ID должен быть UUID приложения Microsoft".into());
+    }
+    crate::secrets::set_many(vec![("cubed-ms-client-id".into(), id.into())])
+}

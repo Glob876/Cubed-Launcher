@@ -2,7 +2,6 @@ import { Icon } from './Icon'
 import { tauri } from '../ipc/tauri'
 import { showToast } from '../state/ui'
 import { tx, useT } from '../i18n'
-import { ServiceStatus } from './ServiceStatus'
 
 const win = () => {
   const T = tauri()
@@ -34,10 +33,9 @@ export function Titlebar() {
   return (
     <div className={'titlebar' + (IS_MAC ? ' mac' : '')}>
       <div className="tb-drag" data-tauri-drag-region="" style={{ flex: 1 }}></div>
-      <ServiceStatus />
       <div className="tb-center">
-        <img src="/millida-logo.svg" alt="" style={{ width: '22px', height: '22px', borderRadius: '6px' }} />
-        <span className="tb-name">MILLIDA LAUNCHER</span>
+        <img src="/cubed-logo.svg" alt="" style={{ width: '22px', height: '22px', borderRadius: '6px' }} />
+        <span className="tb-name">CUBED LAUNCHER</span>
       </div>
       {IS_MAC ? null : (
         <div className="tb-btns">

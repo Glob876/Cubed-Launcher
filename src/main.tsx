@@ -1,7 +1,7 @@
 // Первым: до модулей, которые читают адрес API при импорте.
 import './preview'
 import { createRoot } from 'react-dom/client'
-import './i18n'
+import { hasChosenLocale, setLocale } from './i18n'
 import './styles/01-base.css'
 import './styles/02-kit.css'
 import './styles/03-mods.css'
@@ -27,12 +27,8 @@ import './styles/pixel/settings.css'
 import './styles/pixel/shell.css'
 import './styles/pixel/social.css'
 import { App } from './App'
-import { dropBootSplash } from './lib/boot'
-import { initAccent } from './lib/accent'
-import { initPremiumTheme } from './lib/premiumTheme'
 import './styles/pixel/premium-theme.css'
 import './styles/classic.css'
-import { Overlay } from './screens/Overlay'
 import { openExt } from './lib/api'
 import { initRenderGate } from './lib/renderGate'
 import { initJankWatch } from './lib/jank'
@@ -58,27 +54,12 @@ document.addEventListener('click', (e) => {
   openExt(a.href)
 })
 
-// The overlay is the same bundle under a hash route: a second entry point
-// would double the build and drift from the main one.
-const isOverlay = location.hash.replace('#', '').split('?')[0] === 'overlay'
-if (isOverlay) {
-  document.documentElement.classList.add('overlay-root')
-  dropBootSplash(document)
-  // The overlay is a window of the same launcher, so it wears the same palette:
-  // without this it painted its own dark grey while the launcher stood in the
-  // user's accent.
-  void initAccent()
-} else {
-  // Премиум-темы PLUS / Diamond: сохранённая рисуется сразу, дальше — по подписке.
-  initPremiumTheme()
-  // Окно лаунчера замирает, пока не видно или поверх идёт игра.
-  initRenderGate()
-  initJankWatch()
-  // Прошлое окно убил сбой видеокарты — WebGL выключаем до первого кадра лобби.
-  void webviewFailure()
-}
+if (!hasChosenLocale()) void setLocale('ru')
+initRenderGate()
+initJankWatch()
+void webviewFailure()
 
 installAspectRatioFallback()
 installBrokenImageGuard()
 
-createRoot(document.getElementById('root')!).render(isOverlay ? <Overlay /> : <App />)
+createRoot(document.getElementById('root')!).render(<App />)

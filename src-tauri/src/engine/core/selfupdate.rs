@@ -119,23 +119,7 @@ fn channel_order(configured: &[String], beta: bool) -> Vec<String> {
     out
 }
 
-fn endpoints(app: &AppHandle) -> Vec<String> {
-    let mut configured: Vec<String> = Vec::new();
-    if let Some(cfg) = app.config().plugins.0.get("updater") {
-        if let Some(list) = cfg["endpoints"].as_array() {
-            for e in list {
-                if let Some(url) = e.as_str() {
-                    configured.push(
-                        url.replace("{{target}}", std::env::consts::OS)
-                            .replace("{{arch}}", std::env::consts::ARCH)
-                            .replace("{{current_version}}", &app.package_info().version.to_string()),
-                    );
-                }
-            }
-        }
-    }
-    channel_order(&configured, beta_channel())
-}
+fn endpoints(_app: &AppHandle) -> Vec<String> { Vec::new() }
 
 // The public signing key comes from tauri.conf.json. The private part belongs to Millida and is not in this repository.
 fn pubkey(app: &AppHandle) -> Result<String, String> {

@@ -13,3 +13,6 @@ pnpm-lock.yaml
 public/**/*.md
 public/**/*.txt
 installer/target
+
+# Local build runtime and verification artifacts
+/work/
